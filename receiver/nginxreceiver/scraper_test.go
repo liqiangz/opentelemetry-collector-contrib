@@ -77,8 +77,8 @@ Reading: 6 Writing: 179 Waiting: 106
 			require.Equal(t, 4, dps.Len())
 			for j := 0; j < dps.Len(); j++ {
 				dp := dps.At(j)
-				state, _ := dp.LabelsMap().Get(metadata.L.State)
-				label := fmt.Sprintf("%s state:%s", m.Name(), state)
+				state, _ := dp.Attributes().Get(metadata.L.State)
+				label := fmt.Sprintf("%s state:%s", m.Name(), state.StringVal())
 				metricValues[label] = dp.IntVal()
 			}
 		case pdata.MetricDataTypeSum:
@@ -137,7 +137,7 @@ func TestScraperFailedStart(t *testing.T) {
 	sc := newNginxScraper(zap.NewNop(), &Config{
 		HTTPClientSettings: confighttp.HTTPClientSettings{
 			Endpoint: "localhost:8080",
-			TLSSetting: configtls.TLSClientSetting{
+			TLSSetting: &configtls.TLSClientSetting{
 				TLSSetting: configtls.TLSSetting{
 					CAFile: "/non/existent",
 				},

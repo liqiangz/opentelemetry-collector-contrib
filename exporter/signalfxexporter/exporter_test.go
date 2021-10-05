@@ -62,7 +62,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "bad config fails",
 			config: &Config{
-				ExporterSettings: config.NewExporterSettings(config.NewID(typeStr)),
+				ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 				APIURL:           "abc",
 			},
 			wantErr: true,
@@ -70,7 +70,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "fails to create metrics converter",
 			config: &Config{
-				ExporterSettings: config.NewExporterSettings(config.NewID(typeStr)),
+				ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 				AccessToken:      "test",
 				Realm:            "realm",
 				ExcludeMetrics:   []dpfilters.MetricFilter{{}},
@@ -80,7 +80,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "successfully create exporter",
 			config: &Config{
-				ExporterSettings: config.NewExporterSettings(config.NewID(typeStr)),
+				ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 				AccessToken:      "someToken",
 				Realm:            "xyz",
 				TimeoutSettings:  exporterhelper.TimeoutSettings{Timeout: 1 * time.Second},
@@ -90,7 +90,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "create exporter with host metadata syncer",
 			config: &Config{
-				ExporterSettings: config.NewExporterSettings(config.NewID(typeStr)),
+				ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 				AccessToken:      "someToken",
 				Realm:            "xyz",
 				TimeoutSettings:  exporterhelper.TimeoutSettings{Timeout: 1 * time.Second},
@@ -449,7 +449,7 @@ func TestNewEventExporter(t *testing.T) {
 	assert.Nil(t, got)
 
 	cfg := &Config{
-		ExporterSettings: config.NewExporterSettings(config.NewID(typeStr)),
+		ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 		AccessToken:      "someToken",
 		IngestURL:        "asdf://:%",
 		TimeoutSettings:  exporterhelper.TimeoutSettings{Timeout: 1 * time.Second},
@@ -707,7 +707,7 @@ func generateLargeDPBatch() pdata.Metrics {
 		m.SetDataType(pdata.MetricDataTypeGauge)
 
 		dp := m.Gauge().DataPoints().AppendEmpty()
-		dp.SetTimestamp(pdata.TimestampFromTime(ts))
+		dp.SetTimestamp(pdata.NewTimestampFromTime(ts))
 		dp.Attributes().InitFromMap(map[string]pdata.AttributeValue{
 			"k0": pdata.NewAttributeValueString("v0"),
 			"k1": pdata.NewAttributeValueString("v1"),
@@ -730,7 +730,7 @@ func generateLargeEventBatch() pdata.Logs {
 		lr.SetName("test_" + strconv.Itoa(i))
 		lr.Attributes().InsertString("k0", "k1")
 		lr.Attributes().InsertNull("com.splunk.signalfx.event_category")
-		lr.SetTimestamp(pdata.TimestampFromTime(ts))
+		lr.SetTimestamp(pdata.NewTimestampFromTime(ts))
 	}
 
 	return out

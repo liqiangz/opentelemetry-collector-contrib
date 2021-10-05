@@ -29,7 +29,7 @@ func TestBuildCounterMetric(t *testing.T) {
 	}
 	parsedMetric := statsDMetric{
 		description: metricDescription,
-		intvalue:    32,
+		asFloat:     32,
 		unit:        "meter",
 		labelKeys:   []string{"mykey"},
 		labelValues: []string{"myvalue"},
@@ -41,11 +41,11 @@ func TestBuildCounterMetric(t *testing.T) {
 	expectedMetric.SetName("testCounter")
 	expectedMetric.SetUnit("meter")
 	expectedMetric.SetDataType(pdata.MetricDataTypeSum)
-	expectedMetric.Sum().SetAggregationTemporality(pdata.AggregationTemporalityDelta)
+	expectedMetric.Sum().SetAggregationTemporality(pdata.MetricAggregationTemporalityDelta)
 	expectedMetric.Sum().SetIsMonotonic(true)
 	dp := expectedMetric.Sum().DataPoints().AppendEmpty()
 	dp.SetIntVal(32)
-	dp.SetTimestamp(pdata.TimestampFromTime(timeNow))
+	dp.SetTimestamp(pdata.NewTimestampFromTime(timeNow))
 	dp.Attributes().InsertString("mykey", "myvalue")
 	assert.Equal(t, metric, expectedMetrics)
 }
@@ -57,7 +57,7 @@ func TestBuildGaugeMetric(t *testing.T) {
 	}
 	parsedMetric := statsDMetric{
 		description: metricDescription,
-		floatvalue:  32.3,
+		asFloat:     32.3,
 		unit:        "meter",
 		labelKeys:   []string{"mykey", "mykey2"},
 		labelValues: []string{"myvalue", "myvalue2"},
@@ -70,7 +70,7 @@ func TestBuildGaugeMetric(t *testing.T) {
 	expectedMetric.SetDataType(pdata.MetricDataTypeGauge)
 	dp := expectedMetric.Gauge().DataPoints().AppendEmpty()
 	dp.SetDoubleVal(32.3)
-	dp.SetTimestamp(pdata.TimestampFromTime(timeNow))
+	dp.SetTimestamp(pdata.NewTimestampFromTime(timeNow))
 	dp.Attributes().InsertString("mykey", "myvalue")
 	dp.Attributes().InsertString("mykey2", "myvalue2")
 	assert.Equal(t, metric, expectedMetrics)
@@ -95,7 +95,7 @@ func TestBuildSummaryMetric(t *testing.T) {
 	dp := m.Summary().DataPoints().AppendEmpty()
 	dp.SetSum(21)
 	dp.SetCount(6)
-	dp.SetTimestamp(pdata.TimestampFromTime(timeNow))
+	dp.SetTimestamp(pdata.NewTimestampFromTime(timeNow))
 	for i, key := range oneSummaryMetric.labelKeys {
 		dp.Attributes().InsertString(key, oneSummaryMetric.labelValues[i])
 	}

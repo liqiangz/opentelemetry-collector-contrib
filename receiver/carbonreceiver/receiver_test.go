@@ -30,10 +30,10 @@ import (
 	"go.opentelemetry.io/collector/config/confignet"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/consumer/consumertest"
-	"go.opentelemetry.io/collector/testutil"
-	"go.opentelemetry.io/collector/translator/internaldata"
 	"go.uber.org/zap"
 
+	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/testutil"
+	internaldata "github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/opencensus"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver/protocol"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver/transport"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver/transport/client"
@@ -82,7 +82,7 @@ func Test_carbonreceiver_New(t *testing.T) {
 			name: "empty_endpoint",
 			args: args{
 				config: Config{
-					ReceiverSettings: config.NewReceiverSettings(config.NewID(typeStr)),
+					ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
 				},
 				nextConsumer: consumertest.NewNop(),
 			},
@@ -92,7 +92,7 @@ func Test_carbonreceiver_New(t *testing.T) {
 			name: "invalid_transport",
 			args: args{
 				config: Config{
-					ReceiverSettings: config.NewReceiverSettings(config.NewIDWithName(typeStr, "invalid_transport_rcv")),
+					ReceiverSettings: config.NewReceiverSettings(config.NewComponentIDWithName(typeStr, "invalid_transport_rcv")),
 					NetAddr: confignet.NetAddr{
 						Endpoint:  "localhost:2003",
 						Transport: "unknown_transp",
@@ -110,7 +110,7 @@ func Test_carbonreceiver_New(t *testing.T) {
 			name: "regex_parser",
 			args: args{
 				config: Config{
-					ReceiverSettings: config.NewReceiverSettings(config.NewID(typeStr)),
+					ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
 					NetAddr: confignet.NetAddr{
 						Endpoint:  "localhost:2003",
 						Transport: "tcp",
@@ -133,7 +133,7 @@ func Test_carbonreceiver_New(t *testing.T) {
 			name: "negative_tcp_idle_timeout",
 			args: args{
 				config: Config{
-					ReceiverSettings: config.NewReceiverSettings(config.NewID(typeStr)),
+					ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
 					NetAddr: confignet.NetAddr{
 						Endpoint:  "localhost:2003",
 						Transport: "tcp",
