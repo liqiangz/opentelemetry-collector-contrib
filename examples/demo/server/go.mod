@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.24.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.25.0
 	go.opentelemetry.io/otel v1.0.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.24.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.24.0
