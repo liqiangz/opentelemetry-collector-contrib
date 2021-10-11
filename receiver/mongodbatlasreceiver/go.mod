@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/mongodb-forks/digest v1.0.3
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/interval v0.36.0
-	go.mongodb.org/atlas v0.12.0
+	go.mongodb.org/atlas v0.13.0
 	go.opentelemetry.io/collector v0.36.1-0.20211004155959-190f8fbb2b9a
 	go.opentelemetry.io/collector/model v0.36.1-0.20211004155959-190f8fbb2b9a // indirect
 	go.uber.org/zap v1.19.1
