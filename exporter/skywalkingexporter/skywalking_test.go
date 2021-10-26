@@ -37,7 +37,7 @@ import (
 )
 
 func TestSwExporter(t *testing.T) {
-	server, addr, handler := initializeGRPCTestServer(t, grpc.MaxConcurrentStreams(10))
+	server, addr, handler := initializeGRPCTestServer(grpc.MaxConcurrentStreams(10))
 	tt := &Config{
 		NumStreams:       10,
 		ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
@@ -111,10 +111,9 @@ func TestSwExporter(t *testing.T) {
 	assert.Equal(t, 10, len(oce.logsClients))
 }
 
-func initializeGRPCTestServer(t *testing.T, opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLogHandler) {
+func initializeGRPCTestServer(opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLogHandler) {
 	server := grpc.NewServer(opts...)
-	lis, err := net.Listen("tcp", "localhost:0")
-	require.NoError(t, err)
+	lis, _ := net.Listen("tcp", "localhost:0")
 	m := &mockLogHandler{
 		logChan: make(chan *logpb.LogData, 200),
 	}
@@ -123,7 +122,10 @@ func initializeGRPCTestServer(t *testing.T, opts ...grpc.ServerOption) (*grpc.Se
 		m,
 	)
 	go func() {
-		require.NoError(t, server.Serve(lis))
+		err := server.Serve(lis)
+		if err != nil {
+			return
+		}
 	}()
 	return server, lis.Addr(), m
 }
@@ -140,7 +142,9 @@ func (h *mockLogHandler) Collect(stream logpb.LogReportService_CollectServer) er
 			return stream.SendAndClose(&v3.Commands{})
 		}
 		if err == nil {
-			h.logChan <- r
+			if h.logChan != nil {
+				h.logChan <- r
+			}
 		}
 	}
 }
