@@ -2,8 +2,13 @@ package skywalkingexporter
 
 import (
 	"context"
+	"io"
+	"net"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/testdata"
-	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/config/configgrpc"
@@ -11,44 +16,64 @@ import (
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"google.golang.org/grpc"
-	"io"
-	"net"
 	v3 "skywalking.apache.org/repo/goapi/collect/common/v3"
 	logpb "skywalking.apache.org/repo/goapi/collect/logging/v3"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestIrectReject_SlotCheck_4(t *testing.T) {
-	exporter, server := doInit(16, 16, t)
+	test(20, 1, t)
+	//test(4, 2, t)
+	//test(4, 3, t)
+	//test(4, 4, t)
+	//test(4, 5, t)
+	//test(4, 6, t)
+	//test(4, 8, t)
+	//test(4, 10, t)
+}
+
+func test(nThread int, nStream int, t *testing.T) {
+	exporter, server := doInit(nStream, t)
+
 	l := testdata.GenerateLogsOneLogRecordNoResource()
 	l.ResourceLogs().At(0).InstrumentationLibraryLogs().At(0).Logs().At(0).Body().SetIntVal(0)
 
-	for i := 0; i < 20; i++ {
-		exporter.ConsumeLogs(context.Background(), l)
+	for i := 0; i < 100; i++ {
+		exporter.pushLogs(context.Background(), l)
 	}
 
+	workers := nThread
+	w := &sync.WaitGroup{}
+	sum := 1000000
 	a := time.Now().UnixMilli()
-	w1 := &sync.WaitGroup{}
-	for i := 0; i < 1000000; i++ {
-			exporter.ConsumeLogs(context.Background(), l)
+	for i := 0; i < workers; i++ {
+		w.Add(1)
+		go func() {
+			defer w.Done()
+			for i := 0; i < sum/workers; i++ {
+				exporter.pushLogs(context.Background(), l)
+			}
 		}()
 	}
-	w1.Wait()
+	w.Wait()
 	b := time.Now().UnixMilli()
+	print(" nThread:")
+	print(nThread)
+	print(" nStream:")
+	print(nStream)
+	print(" time:")
 	println(b - a)
 	server.Stop()
+	exporter.shutdown(context.Background())
 }
 
-func doInit(numConsumers int, numStream int, t *testing.T) (component.LogsExporter, *grpc.Server) {
+func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server) {
 	server, addr := initializeGRPC(grpc.MaxConcurrentStreams(100))
 	tt := &Config{
 		NumStreams:       numStream,
 		ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
 		QueueSettings: exporterhelper.QueueSettings{
 			Enabled:      true,
-			NumConsumers: numConsumers,
+			NumConsumers: 1,
 			QueueSize:    1000,
 		},
 		GRPCClientSettings: configgrpc.GRPCClientSettings{
@@ -78,7 +103,7 @@ func doInit(numConsumers int, numStream int, t *testing.T) (component.LogsExport
 
 	err = got.Start(context.Background(), componenttest.NewNopHost())
 
-	return got, server
+	return oce, server
 }
 
 func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr) {
@@ -111,6 +136,5 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 		if err == io.EOF {
 			return stream.SendAndClose(&v3.Commands{})
 		}
-		time.Sleep(time.Millisecond * 5)
 	}
 }
