@@ -28,6 +28,7 @@ func TestIrectReject_SlotCheck_4(t *testing.T) {
 	test(2, 5, t)
 	test(2, 10, t)
 
+	println()
 	test(3, 1, t)
 	test(3, 2, t)
 	test(3, 3, t)
@@ -35,6 +36,7 @@ func TestIrectReject_SlotCheck_4(t *testing.T) {
 	test(3, 5, t)
 	test(3, 10, t)
 
+	println()
 	test(4, 1, t)
 	test(4, 2, t)
 	test(4, 3, t)
@@ -56,7 +58,7 @@ func test(nThread int, nStream int, t *testing.T) {
 	workers := nThread
 	w := &sync.WaitGroup{}
 	sum := 1000000
-	a := time.Now().UnixMilli()
+	start := time.Now().UnixMilli()
 	for i := 0; i < workers; i++ {
 		w.Add(1)
 		go func() {
@@ -67,16 +69,16 @@ func test(nThread int, nStream int, t *testing.T) {
 		}()
 	}
 	w.Wait()
-	b := time.Now().UnixMilli()
+	end := time.Now().UnixMilli()
 	print(" nThread:")
 	print(nThread)
 	print(" nStream:")
 	print(nStream)
 	print(" time:")
-	println(b - a)
+	println(start - end)
 	server.Stop()
 	exporter.shutdown(context.Background())
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 2)
 }
 
 func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server) {
