@@ -21,14 +21,26 @@ import (
 )
 
 func TestIrectReject_SlotCheck_4(t *testing.T) {
-	test(20, 1, t)
-	//test(4, 2, t)
-	//test(4, 3, t)
-	//test(4, 4, t)
-	//test(4, 5, t)
-	//test(4, 6, t)
-	//test(4, 8, t)
-	//test(4, 10, t)
+	test(2, 1, t)
+	test(2, 2, t)
+	test(2, 3, t)
+	test(2, 4, t)
+	test(2, 5, t)
+	test(2, 10, t)
+
+	test(3, 1, t)
+	test(3, 2, t)
+	test(3, 3, t)
+	test(3, 4, t)
+	test(3, 5, t)
+	test(3, 10, t)
+
+	test(4, 1, t)
+	test(4, 2, t)
+	test(4, 3, t)
+	test(4, 4, t)
+	test(4, 5, t)
+	test(4, 10, t)
 }
 
 func test(nThread int, nStream int, t *testing.T) {
@@ -64,6 +76,7 @@ func test(nThread int, nStream int, t *testing.T) {
 	println(b - a)
 	server.Stop()
 	exporter.shutdown(context.Background())
+	time.Sleep(time.Second * 5)
 }
 
 func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server) {
@@ -136,5 +149,10 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 		if err == io.EOF {
 			return stream.SendAndClose(&v3.Commands{})
 		}
+		if err != nil {
+			stream.SendAndClose(&v3.Commands{})
+			break
+		}
 	}
+	return nil
 }
