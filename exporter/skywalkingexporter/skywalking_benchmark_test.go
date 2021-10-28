@@ -4,11 +4,14 @@ import (
 	"context"
 	"io"
 	"net"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal/testdata"
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/config/configgrpc"
@@ -20,7 +23,20 @@ import (
 	logpb "skywalking.apache.org/repo/goapi/collect/logging/v3"
 )
 
-func TestIrectReject_SlotCheck_4(t *testing.T) {
+var consumerNum int32 = 0
+
+var sumNum = 1000000
+
+func TestSkywalking(t *testing.T) {
+
+	test(1, 1, t)
+	test(1, 2, t)
+	test(1, 3, t)
+	test(1, 4, t)
+	test(1, 5, t)
+	test(1, 10, t)
+
+	println()
 	test(2, 1, t)
 	test(2, 2, t)
 	test(2, 3, t)
@@ -29,60 +45,75 @@ func TestIrectReject_SlotCheck_4(t *testing.T) {
 	test(2, 10, t)
 
 	println()
-	test(3, 1, t)
-	test(3, 2, t)
-	test(3, 3, t)
-	test(3, 4, t)
-	test(3, 5, t)
-	test(3, 10, t)
-
-	println()
 	test(4, 1, t)
 	test(4, 2, t)
 	test(4, 3, t)
 	test(4, 4, t)
 	test(4, 5, t)
 	test(4, 10, t)
+
+	println()
+	test(5, 1, t)
+	test(5, 2, t)
+	test(5, 3, t)
+	test(5, 4, t)
+	test(5, 5, t)
+	test(5, 10, t)
+
+	println()
+	test(10, 1, t)
+	test(10, 2, t)
+	test(10, 3, t)
+	test(10, 4, t)
+	test(10, 5, t)
+	test(10, 10, t)
+	test(10, 15, t)
+	test(10, 20, t)
 }
 
-func test(nThread int, nStream int, t *testing.T) {
-	exporter, server := doInit(nStream, t)
-
+func test(nGoroutine int, nStream int, t *testing.T) {
+	exporter, server, m := doInit(nStream, t)
+	atomic.StoreInt32(&consumerNum, -int32(nStream))
 	l := testdata.GenerateLogsOneLogRecordNoResource()
 	l.ResourceLogs().At(0).InstrumentationLibraryLogs().At(0).Logs().At(0).Body().SetIntVal(0)
 
-	for i := 0; i < 100; i++ {
-		exporter.pushLogs(context.Background(), l)
+	for i := 0; i < nStream; i++ {
+		err := exporter.pushLogs(context.Background(), l)
+		assert.NoError(t, err)
 	}
 
-	workers := nThread
+	workers := nGoroutine
 	w := &sync.WaitGroup{}
-	sum := 1000000
 	start := time.Now().UnixMilli()
 	for i := 0; i < workers; i++ {
 		w.Add(1)
 		go func() {
 			defer w.Done()
-			for i := 0; i < sum/workers; i++ {
-				exporter.pushLogs(context.Background(), l)
+			for i := 0; i < sumNum/workers; i++ {
+				err := exporter.pushLogs(context.Background(), l)
+				assert.NoError(t, err)
 			}
 		}()
 	}
 	w.Wait()
 	end := time.Now().UnixMilli()
-	print(" nThread:")
-	print(nThread)
-	print(" nStream:")
+	print("The number of goroutines:")
+	print(nGoroutine)
+	print(",  The number of streams:")
 	print(nStream)
-	print(" time:")
-	println(start - end)
+	print(",  Sent: 1000000 items (" + strconv.Itoa(sumNum/int(end-start)) + "/millisecond)")
+	consumerTime := <-m.stopChan
+	assert.NotEqual(t, consumerTime, -1)
+	println(",  Receive: 1000000 items (" + strconv.Itoa(sumNum/(consumerTime)) + "/millisecond)")
+
 	server.Stop()
-	exporter.shutdown(context.Background())
-	time.Sleep(time.Second * 2)
+	err := exporter.shutdown(context.Background())
+	assert.NoError(t, err)
+	time.Sleep(time.Second * 1)
 }
 
-func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server) {
-	server, addr := initializeGRPC(grpc.MaxConcurrentStreams(100))
+func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server, *mockLogHandler2) {
+	server, addr, m := initializeGRPC(grpc.MaxConcurrentStreams(100))
 	tt := &Config{
 		NumStreams:       numStream,
 		ExporterSettings: config.NewExporterSettings(config.NewComponentID(typeStr)),
@@ -118,14 +149,14 @@ func doInit(numStream int, t *testing.T) (*swExporter, *grpc.Server) {
 
 	err = got.Start(context.Background(), componenttest.NewNopHost())
 
-	return oce, server
+	return oce, server, m
 }
 
-func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr) {
+func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLogHandler2) {
 	server := grpc.NewServer(opts...)
 	lis, _ := net.Listen("tcp", "localhost:0")
 	m := &mockLogHandler2{
-		logChan: nil,
+		stopChan: make(chan int),
 	}
 	logpb.RegisterLogReportServiceServer(
 		server,
@@ -137,24 +168,33 @@ func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr) {
 			return
 		}
 	}()
-	return server, lis.Addr()
+	return server, lis.Addr(), m
 }
 
 type mockLogHandler2 struct {
-	logChan chan *logpb.LogData
+	stopChan chan int
 	logpb.UnimplementedLogReportServiceServer
 }
 
 func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) error {
+	start := time.Now().UnixMilli()
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
+			h.stopChan <- -1
 			return stream.SendAndClose(&v3.Commands{})
 		}
-		if err != nil {
-			stream.SendAndClose(&v3.Commands{})
-			break
+		if err == nil {
+			atomic.AddInt32(&consumerNum, 1)
+			if atomic.LoadInt32(&consumerNum) >= int32(sumNum) {
+				end := time.Now().UnixMilli()
+				h.stopChan <- int(end - start)
+				return nil
+			}
+		} else {
+			err := stream.SendAndClose(&v3.Commands{})
+			h.stopChan <- -1
+			return err
 		}
 	}
-	return nil
 }
