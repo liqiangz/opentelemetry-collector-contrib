@@ -101,10 +101,10 @@ func test(nGoroutine int, nStream int, t *testing.T) {
 	print(nGoroutine)
 	print(",  The number of streams:")
 	print(nStream)
-	print(",  Sent: 1000000 items (" + strconv.Itoa(sumNum/int(end-start)) + "/millisecond)")
-	consumerTime := <-m.stopChan
-	assert.NotEqual(t, consumerTime, -1)
-	println(",  Receive: 1000000 items (" + strconv.Itoa(sumNum/(consumerTime)) + "/millisecond)")
+	print(",  Sent: " + strconv.Itoa(sumNum) + " items (" + strconv.Itoa(sumNum/int(end-start)) + "/millisecond)")
+	end = <-m.stopChan
+	assert.NotEqual(t, end, -1)
+	println(",  Receive: " + strconv.Itoa(sumNum) + " items (" + strconv.Itoa(sumNum/(int(end-start))) + "/millisecond)")
 
 	server.Stop()
 	err := exporter.shutdown(context.Background())
@@ -156,7 +156,7 @@ func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLog
 	server := grpc.NewServer(opts...)
 	lis, _ := net.Listen("tcp", "localhost:0")
 	m := &mockLogHandler2{
-		stopChan: make(chan int),
+		stopChan: make(chan int64),
 	}
 	logpb.RegisterLogReportServiceServer(
 		server,
@@ -172,12 +172,11 @@ func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLog
 }
 
 type mockLogHandler2 struct {
-	stopChan chan int
+	stopChan chan int64
 	logpb.UnimplementedLogReportServiceServer
 }
 
 func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) error {
-	start := time.Now().UnixMilli()
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
@@ -188,7 +187,7 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 			atomic.AddInt32(&consumerNum, 1)
 			if atomic.LoadInt32(&consumerNum) >= int32(sumNum) {
 				end := time.Now().UnixMilli()
-				h.stopChan <- int(end - start)
+				h.stopChan <- end
 				return nil
 			}
 		} else {
