@@ -45,57 +45,107 @@ var (
 
 func TestSkywalking(t *testing.T) {
 
-	test(1, 1, t)
-	test(1, 2, t)
-	test(1, 3, t)
-	test(1, 4, t)
-	test(1, 5, t)
-	test(1, 10, t)
+	println("keep alive stream")
+	test(1, 1, t, true)
+	test(1, 2, t, true)
+	test(1, 3, t, true)
+	test(1, 4, t, true)
+	test(1, 5, t, true)
+	test(1, 10, t, true)
 
 	println()
-	test(2, 1, t)
-	test(2, 2, t)
-	test(2, 3, t)
-	test(2, 4, t)
-	test(2, 5, t)
-	test(2, 10, t)
+	test(2, 1, t, true)
+	test(2, 2, t, true)
+	test(2, 3, t, true)
+	test(2, 4, t, true)
+	test(2, 5, t, true)
+	test(2, 10, t, true)
 
 	println()
-	test(4, 1, t)
-	test(4, 2, t)
-	test(4, 3, t)
-	test(4, 4, t)
-	test(4, 5, t)
-	test(4, 10, t)
+	test(4, 1, t, true)
+	test(4, 2, t, true)
+	test(4, 3, t, true)
+	test(4, 4, t, true)
+	test(4, 5, t, true)
+	test(4, 10, t, true)
 
 	println()
-	test(5, 1, t)
-	test(5, 2, t)
-	test(5, 3, t)
-	test(5, 4, t)
-	test(5, 5, t)
-	test(5, 10, t)
+	test(5, 1, t, true)
+	test(5, 2, t, true)
+	test(5, 3, t, true)
+	test(5, 4, t, true)
+	test(5, 5, t, true)
+	test(5, 10, t, true)
 
 	println()
-	test(10, 1, t)
-	test(10, 2, t)
-	test(10, 3, t)
-	test(10, 4, t)
-	test(10, 5, t)
-	test(10, 10, t)
-	test(10, 15, t)
-	test(10, 20, t)
+	test(10, 1, t, true)
+	test(10, 2, t, true)
+	test(10, 3, t, true)
+	test(10, 4, t, true)
+	test(10, 5, t, true)
+	test(10, 10, t, true)
+	test(10, 15, t, true)
+	test(10, 20, t, true)
+
+	println("One stream One Request")
+
+	test(1, 1, t, false)
+	test(1, 2, t, false)
+	test(1, 3, t, false)
+	test(1, 4, t, false)
+	test(1, 5, t, false)
+	test(1, 10, t, false)
+
+	println()
+	test(2, 1, t, false)
+	test(2, 2, t, false)
+	test(2, 3, t, false)
+	test(2, 4, t, false)
+	test(2, 5, t, false)
+	test(2, 10, t, false)
+
+	println()
+	test(4, 1, t, false)
+	test(4, 2, t, false)
+	test(4, 3, t, false)
+	test(4, 4, t, false)
+	test(4, 5, t, false)
+	test(4, 10, t, false)
+
+	println()
+	test(5, 1, t, false)
+	test(5, 2, t, false)
+	test(5, 3, t, false)
+	test(5, 4, t, false)
+	test(5, 5, t, false)
+	test(5, 10, t, false)
+
+	println()
+	test(10, 1, t, false)
+	test(10, 2, t, false)
+	test(10, 3, t, false)
+	test(10, 4, t, false)
+	test(10, 5, t, false)
+	test(10, 10, t, false)
+	test(10, 15, t, false)
+	test(10, 20, t, false)
+
 }
 
-func test(nGoroutine int, nStream int, t *testing.T) {
+func test(nGoroutine int, nStream int, t *testing.T, flag bool) {
 	exporter, server, m := doInit(nStream, t)
 	atomic.StoreInt32(&consumerNum, -int32(nStream))
 	l := testdata.GenerateLogsOneLogRecordNoResource()
 	l.ResourceLogs().At(0).InstrumentationLibraryLogs().At(0).Logs().At(0).Body().SetIntVal(0)
 
 	for i := 0; i < nStream; i++ {
-		err := exporter.pushLogs(context.Background(), l)
-		assert.NoError(t, err)
+		if flag {
+			err := exporter.pushLogs(context.Background(), l)
+			assert.NoError(t, err)
+		} else {
+			err := exporter.pushLogs2(context.Background(), l)
+			assert.NoError(t, err)
+		}
 	}
 
 	workers := nGoroutine
@@ -106,8 +156,13 @@ func test(nGoroutine int, nStream int, t *testing.T) {
 		go func() {
 			defer w.Done()
 			for i := 0; i < sumNum/workers; i++ {
-				err := exporter.pushLogs(context.Background(), l)
-				assert.NoError(t, err)
+				if flag {
+					err := exporter.pushLogs(context.Background(), l)
+					assert.NoError(t, err)
+				} else {
+					err := exporter.pushLogs2(context.Background(), l)
+					assert.NoError(t, err)
+				}
 			}
 		}()
 	}
@@ -171,7 +226,7 @@ func initializeGRPC(opts ...grpc.ServerOption) (*grpc.Server, net.Addr, *mockLog
 	server := grpc.NewServer(opts...)
 	lis, _ := net.Listen("tcp", "localhost:0")
 	m := &mockLogHandler2{
-		stopChan: make(chan int64),
+		stopChan: make(chan int64, 1),
 	}
 	logpb.RegisterLogReportServiceServer(
 		server,
@@ -195,7 +250,7 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
-			h.stopChan <- -1
+			//h.stopChan <- -1
 			return stream.SendAndClose(&v3.Commands{})
 		}
 		if err == nil {
@@ -203,7 +258,6 @@ func (h *mockLogHandler2) Collect(stream logpb.LogReportService_CollectServer) e
 			if atomic.LoadInt32(&consumerNum) >= int32(sumNum) {
 				end := time.Now().UnixMilli()
 				h.stopChan <- end
-				return nil
 			}
 		} else {
 			err := stream.SendAndClose(&v3.Commands{})
