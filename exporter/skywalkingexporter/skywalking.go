@@ -127,6 +127,31 @@ func (oce *swExporter) pushLogs(_ context.Context, td pdata.Logs) error {
 	return nil
 }
 
+func (oce *swExporter) pushLogs2(_ context.Context, td pdata.Logs) error {
+
+	tClient, err := oce.createLogServiceRPC()
+	if err != nil {
+		return err
+	}
+
+	for _, logData := range logRecordToLogData(td) {
+		err := tClient.tsec.Send(logData)
+		if err != nil {
+			// Error received, cancel the context used to create the RPC to free all resources,
+			// put back nil to keep the number of streams constant.
+			tClient.cancel()
+			oce.logsClients <- nil
+			return err
+		}
+	}
+	_, err = tClient.tsec.CloseAndRecv()
+	if err != nil {
+		return err
+	}
+	tClient.cancel()
+	return nil
+}
+
 func (oce *swExporter) createLogServiceRPC() (*logsClientWithCancel, error) {
 	// Initiate the log service by sending over node identifier info.
 	ctx, cancel := context.WithCancel(context.Background())
