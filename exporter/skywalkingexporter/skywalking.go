@@ -137,8 +137,6 @@ func (oce *swExporter) pushLogs2(_ context.Context, td pdata.Logs) error {
 	for _, logData := range logRecordToLogData(td) {
 		err := tClient.tsec.Send(logData)
 		if err != nil {
-			// Error received, cancel the context used to create the RPC to free all resources,
-			// put back nil to keep the number of streams constant.
 			tClient.cancel()
 			oce.logsClients <- nil
 			return err
