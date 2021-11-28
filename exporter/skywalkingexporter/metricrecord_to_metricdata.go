@@ -19,14 +19,6 @@ import (
 	metricpb "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-const (
-	metricNameKey   = "__name__"
-	labelsKey       = "__labels__"
-	timeNanoKey     = "__time_nano__"
-	valueKey        = "__value__"
-	summaryLabelKey = "quantile"
-)
-
 func min(l, r int) int {
 	if l < r {
 		return l
@@ -34,7 +26,8 @@ func min(l, r int) int {
 	return r
 }
 
-func resourceToMetricLabels(labels []*metricpb.Label, resource pdata.Resource) {
+func resourceToMetricLabels(resource pdata.Resource) []*metricpb.Label {
+	labels := make([]*metricpb.Label, 0)
 	attrs := resource.Attributes()
 	attrs.Range(func(k string, v pdata.AttributeValue) bool {
 		labels = append(labels,
@@ -44,6 +37,7 @@ func resourceToMetricLabels(labels []*metricpb.Label, resource pdata.Resource) {
 			})
 		return true
 	})
+	return labels
 }
 
 func numberMetricsToLogs(name string, data pdata.NumberDataPointSlice, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
@@ -61,7 +55,7 @@ func numberMetricsToLogs(name string, data pdata.NumberDataPointSlice, defaultLa
 			labels = append(labels, &metricpb.Label{Name: label.Name, Value: label.Value})
 		}
 		meterData := &metricpb.MeterData{}
-		sv := &metricpb.MeterData_SingleValue{}
+		sv := &metricpb.MeterData_SingleValue{SingleValue: &metricpb.MeterSingleValue{}}
 		sv.SingleValue.Labels = labels
 		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		sv.SingleValue.Name = name
@@ -94,22 +88,22 @@ func doubleHistogramMetricsToLogs(name string, data pdata.HistogramDataPointSlic
 		}
 
 		meterData := &metricpb.MeterData{}
-		hg := &metricpb.MeterData_Histogram{}
+		hg := &metricpb.MeterData_Histogram{Histogram: &metricpb.MeterHistogram{}}
 		hg.Histogram.Name = name
 		bounds := dataPoint.ExplicitBounds()
-		bucketCount := min(len(bounds), len(dataPoint.BucketCounts()))
+		bucketCount := len(dataPoint.BucketCounts())
 
-		var pre uint64 = 0
-		for i := 0; i < bucketCount; i++ {
-			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: bounds[i], Count: int64(dataPoint.BucketCounts()[i] - pre)})
-			pre = dataPoint.BucketCounts()[i]
+		hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: 0, Count: int64(dataPoint.BucketCounts()[i]), IsNegativeInfinity: true})
+		for i := 1; i < bucketCount && i-1 < len(bounds); i++ {
+			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: bounds[i-1], Count: int64(dataPoint.BucketCounts()[i])})
 		}
+
 		meterData.Metric = hg
 		meterData.Service = defaultServiceName
 		metrics = append(metrics, meterData)
 
 		meterDataSum := &metricpb.MeterData{}
-		svs := &metricpb.MeterData_SingleValue{}
+		svs := &metricpb.MeterData_SingleValue{SingleValue: &metricpb.MeterSingleValue{}}
 		svs.SingleValue.Labels = labels
 		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		svs.SingleValue.Name = name + "_sum"
@@ -118,7 +112,7 @@ func doubleHistogramMetricsToLogs(name string, data pdata.HistogramDataPointSlic
 		metrics = append(metrics, meterDataSum)
 
 		meterDataCount := &metricpb.MeterData{}
-		svc := &metricpb.MeterData_SingleValue{}
+		svc := &metricpb.MeterData_SingleValue{SingleValue: &metricpb.MeterSingleValue{}}
 		svc.SingleValue.Labels = labels
 		meterDataCount.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		svc.SingleValue.Name = name + "_count"
@@ -153,8 +147,7 @@ func metricsRecordToLogData(
 	resMetrics := md.ResourceMetrics()
 	for i := 0; i < resMetrics.Len(); i++ {
 		resMetricSlice := resMetrics.At(i)
-		labels := make([]*metricpb.Label, 0)
-		resourceToMetricLabels(labels, resMetricSlice.Resource())
+		labels := resourceToMetricLabels(resMetricSlice.Resource())
 		insMetricSlice := resMetricSlice.InstrumentationLibraryMetrics()
 		metrics = &metricpb.MeterDataCollection{}
 		metrics.MeterData = make([]*metricpb.MeterData, 0)
@@ -164,7 +157,11 @@ func metricsRecordToLogData(
 			metricSlice := insMetrics.Metrics()
 			for k := 0; k < metricSlice.Len(); k++ {
 				oneMetric := metricSlice.At(k)
-				metrics.MeterData = append(metrics.MeterData, metricDataToLogServiceData(oneMetric, labels)...)
+				ms := metricDataToLogServiceData(oneMetric, labels)
+				if ms == nil {
+					continue
+				}
+				metrics.MeterData = append(metrics.MeterData, ms...)
 			}
 		}
 	}
