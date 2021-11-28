@@ -12,143 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package skywalkingexporter
+package skywalkingexporter // import "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/skywalkingexporter"
 
 import (
-	"github.com/denverdino/aliyungo/sls"
-	metricpb "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
-	"sort"
-	"strconv"
-	"strings"
-
-	"github.com/gogo/protobuf/proto"
 	"go.opentelemetry.io/collector/model/pdata"
-	"go.uber.org/zap"
+	metricpb "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
 const (
-	metricNameKey = "__name__"
-	labelsKey     = "__labels__"
-	timeNanoKey   = "__time_nano__"
-	valueKey      = "__value__"
-	// same with : https://github.com/prometheus/common/blob/b5fe7d854c42dc7842e48d1ca58f60feae09d77b/expfmt/text_create.go#L445
-	infinityBoundValue = "+Inf"
-	bucketLabelKey     = "le"
-	summaryLabelKey    = "quantile"
+	metricNameKey   = "__name__"
+	labelsKey       = "__labels__"
+	timeNanoKey     = "__time_nano__"
+	valueKey        = "__value__"
+	summaryLabelKey = "quantile"
 )
-
-type KeyValue struct {
-	Key   string
-	Value string
-}
-
-type KeyValues struct {
-	keyValues []KeyValue
-}
-
-func (kv *KeyValues) Len() int { return len(kv.keyValues) }
-func (kv *KeyValues) Swap(i, j int) {
-	kv.keyValues[i], kv.keyValues[j] = kv.keyValues[j], kv.keyValues[i]
-}
-func (kv *KeyValues) Less(i, j int) bool { return kv.keyValues[i].Key < kv.keyValues[j].Key }
-
-func (kv *KeyValues) Sort() {
-	sort.Sort(kv)
-}
-
-func (kv *KeyValues) Replace(key, value string) {
-	key = sanitize(key)
-	findIndex := sort.Search(len(kv.keyValues), func(index int) bool {
-		return kv.keyValues[index].Key >= key
-	})
-	if findIndex < len(kv.keyValues) && kv.keyValues[findIndex].Key == key {
-		kv.keyValues[findIndex].Value = value
-	}
-}
-
-func (kv *KeyValues) Append(key, value string) {
-	key = sanitize(key)
-	kv.keyValues = append(kv.keyValues, KeyValue{
-		key,
-		value,
-	})
-}
-
-func (kv *KeyValues) Clone() KeyValues {
-	var newKeyValues KeyValues
-	newKeyValues.keyValues = make([]KeyValue, len(kv.keyValues))
-	copy(newKeyValues.keyValues, kv.keyValues)
-	return newKeyValues
-}
-
-func (kv *KeyValues) String() string {
-	var builder strings.Builder
-	kv.labelToStringBuilder(&builder)
-	return builder.String()
-}
-
-func (kv *KeyValues) labelToStringBuilder(sb *strings.Builder) {
-	for index, label := range kv.keyValues {
-		sb.WriteString(label.Key)
-		sb.WriteString("#$#")
-		sb.WriteString(label.Value)
-		if index != len(kv.keyValues)-1 {
-			sb.WriteByte('|')
-		}
-	}
-}
-
-func formatMetricName(name string) string {
-	var newName []byte
-	for i := 0; i < len(name); i++ {
-		b := name[i]
-		if (b >= 'a' && b <= 'z') ||
-			(b >= 'A' && b <= 'Z') ||
-			(b >= '0' && b <= '9') ||
-			b == '_' ||
-			b == ':' {
-			continue
-		} else {
-			if newName == nil {
-				newName = []byte(name)
-			}
-			newName[i] = '_'
-		}
-	}
-	if newName == nil {
-		return name
-	}
-	return string(newName)
-}
-
-func newMetricLogFromRaw(
-	name string,
-	labels KeyValues,
-	nsec int64,
-	value float64) *sls.Log {
-	labels.Sort()
-	return &sls.Log{
-		Time: proto.Uint32(uint32(nsec / 1e9)),
-		Contents: []*sls.LogContent{
-			{
-				Key:   proto.String(metricNameKey),
-				Value: proto.String(formatMetricName(name)),
-			},
-			{
-				Key:   proto.String(labelsKey),
-				Value: proto.String(labels.String()),
-			},
-			{
-				Key:   proto.String(timeNanoKey),
-				Value: proto.String(strconv.FormatInt(nsec, 10)),
-			},
-			{
-				Key:   proto.String(valueKey),
-				Value: proto.String(strconv.FormatFloat(value, 'g', -1, 64)),
-			},
-		},
-	}
-}
 
 func min(l, r int) int {
 	if l < r {
@@ -194,6 +71,8 @@ func numberMetricsToLogs(name string, data pdata.NumberDataPointSlice, defaultLa
 		case pdata.MetricValueTypeDouble:
 			sv.SingleValue.Value = dataPoint.DoubleVal()
 		}
+		meterData.Metric = sv
+		meterData.Service = defaultServiceName
 		metrics = append(metrics, meterData)
 	}
 	return metrics
@@ -219,49 +98,35 @@ func doubleHistogramMetricsToLogs(name string, data pdata.HistogramDataPointSlic
 		hg.Histogram.Name = name
 		bounds := dataPoint.ExplicitBounds()
 		bucketCount := min(len(bounds), len(dataPoint.BucketCounts()))
+
+		var pre uint64 = 0
 		for i := 0; i < bucketCount; i++ {
-			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: bounds[i], Count: int64(dataPoint.BucketCounts()[i])})
+			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: bounds[i], Count: int64(dataPoint.BucketCounts()[i] - pre)})
+			pre = dataPoint.BucketCounts()[i]
 		}
 		meterData.Metric = hg
+		meterData.Service = defaultServiceName
 		metrics = append(metrics, meterData)
+
+		meterDataSum := &metricpb.MeterData{}
+		svs := &metricpb.MeterData_SingleValue{}
+		svs.SingleValue.Labels = labels
+		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
+		svs.SingleValue.Name = name + "_sum"
+		svs.SingleValue.Value = dataPoint.Sum()
+		meterDataSum.Metric = svs
+		metrics = append(metrics, meterDataSum)
+
+		meterDataCount := &metricpb.MeterData{}
+		svc := &metricpb.MeterData_SingleValue{}
+		svc.SingleValue.Labels = labels
+		meterDataCount.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
+		svc.SingleValue.Name = name + "_count"
+		svc.SingleValue.Value = float64(dataPoint.Count())
+		meterDataCount.Metric = svc
+		metrics = append(metrics, meterDataCount)
 	}
 	return metrics
-}
-
-func doubleSummaryMetricsToLogs(name string, data pdata.SummaryDataPointSlice, defaultLabels KeyValues) (logs []*sls.Log) {
-	for i := 0; i < data.Len(); i++ {
-		dataPoint := data.At(i)
-		attributeMap := dataPoint.Attributes()
-		labels := defaultLabels.Clone()
-		attributeMap.Range(func(k string, v pdata.AttributeValue) bool {
-			labels.Append(k, v.AsString())
-			return true
-		})
-		logs = append(logs, newMetricLogFromRaw(name+"_sum",
-			labels,
-			int64(dataPoint.Timestamp()),
-			dataPoint.Sum()))
-		logs = append(logs, newMetricLogFromRaw(name+"_count",
-			labels,
-			int64(dataPoint.Timestamp()),
-			float64(dataPoint.Count())))
-
-		// Adding the "quantile" dimension.
-		summaryLabels := labels.Clone()
-		summaryLabels.Append(summaryLabelKey, "")
-		summaryLabels.Sort()
-
-		values := dataPoint.QuantileValues()
-		for i := 0; i < values.Len(); i++ {
-			value := values.At(i)
-			summaryLabels.Replace(summaryLabelKey, strconv.FormatFloat(value.Quantile(), 'g', -1, 64))
-			logs = append(logs, newMetricLogFromRaw(name,
-				summaryLabels,
-				int64(dataPoint.Timestamp()),
-				value.Value()))
-		}
-	}
-	return logs
 }
 
 func metricDataToLogServiceData(md pdata.Metric, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
@@ -275,13 +140,13 @@ func metricDataToLogServiceData(md pdata.Metric, defaultLabels []*metricpb.Label
 	case pdata.MetricDataTypeHistogram:
 		return doubleHistogramMetricsToLogs(md.Name(), md.Histogram().DataPoints(), defaultLabels)
 	case pdata.MetricDataTypeSummary:
-		return doubleSummaryMetricsToLogs(md.Name(), md.Summary().DataPoints(), defaultLabels)
+		//todo not support yet
+		return nil
 	}
-	return logs
+	return nil
 }
 
-func metricsDataToLogServiceData(
-	_ *zap.Logger,
+func metricsRecordToLogData(
 	md pdata.Metrics,
 ) (metrics *metricpb.MeterDataCollection) {
 

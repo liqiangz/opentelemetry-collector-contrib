@@ -49,7 +49,7 @@ func TestSwExporter(t *testing.T) {
 		},
 	}
 
-	oce := newExporter(context.Background(), tt, componenttest.NewNopTelemetrySettings())
+	oce := newLogsExporter(context.Background(), tt, componenttest.NewNopTelemetrySettings())
 	got, err := exporterhelper.NewLogsExporter(
 		tt,
 		componenttest.NewNopExporterCreateSettings(),

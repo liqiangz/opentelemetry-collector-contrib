@@ -12,19 +12,6 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.40.0
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	google.golang.org/grpc v1.42.0
-	skywalking.apache.org/repo/goapi v0.0.0-20210820070710-e10b78bbf481
-)
-
-require (
-	github.com/gogo/protobuf v1.3.2
-	go.uber.org/zap v1.19.1
-)
-
-require (
-	github.com/denverdino/aliyungo v0.0.0-20211122042034-c78a9788662a
-	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.39.0
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
-	google.golang.org/grpc v1.42.0
 	skywalking.apache.org/repo/goapi v0.0.0-20211122071111-ffc517fbfe21
 )
 
@@ -33,6 +20,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
@@ -51,6 +39,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.2.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
 	golang.org/x/sys v0.0.0-20211013075003-97ac67df715c // indirect
