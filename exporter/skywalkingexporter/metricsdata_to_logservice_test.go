@@ -49,6 +49,7 @@ func TestMetricDataToLogService(t *testing.T) {
 	intGaugeDataPoints := intGauge.DataPoints()
 	intGaugeDataPoint := intGaugeDataPoints.AppendEmpty()
 	intGaugeDataPoint.Attributes().InsertString("innerLabel", "innerValue")
+	intGaugeDataPoint.Attributes().InsertString("testa", "test")
 	intGaugeDataPoint.SetIntVal(10)
 	intGaugeDataPoint.SetTimestamp(pdata.Timestamp(100_000_000))
 
@@ -118,12 +119,51 @@ func TestMetricDataToLogService(t *testing.T) {
 	assert.Equal(t, 7, len(gotLogs.MeterData))
 
 	for i, meterData := range gotLogs.MeterData {
-		assert.Equal(t, "labelB", searchMetricTag("labelB", meterData))
-		assert.Equal(t, "labelA", searchMetricTag("labelA", meterData))
-		assert.Equal(t, "a", searchMetricTag("b", meterData))
-		assert.Equal(t, "innerLabel", searchMetricTag("innerLabel", meterData))
+		assert.Equal(t, "valueB", searchMetricTag("labelB", meterData))
+		assert.Equal(t, "valueA", searchMetricTag("labelA", meterData))
+		assert.Equal(t, "b", searchMetricTag("a", meterData))
+		assert.Equal(t, "innerValue", searchMetricTag("innerLabel", meterData))
 		if i == 0 {
-			assert.Equal(t, "int_gauge", meterData.GetSingleValue().GetName()  7)
+			assert.Equal(t, "int_gauge", meterData.GetSingleValue().GetName())
+			assert.Equal(t, float64(10), meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+			assert.Equal(t, "test", searchMetricTag("testa", meterData))
+		} else if i == 1 {
+			assert.Equal(t, "double_gauge", meterData.GetSingleValue().GetName())
+			assert.Equal(t, 10.1, meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+		} else if i == 2 {
+			assert.Equal(t, "int_sum", meterData.GetSingleValue().GetName())
+			assert.Equal(t, float64(11), meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+		} else if i == 3 {
+			assert.Equal(t, "double_sum", meterData.GetSingleValue().GetName())
+			assert.Equal(t, 10.1, meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+		} else if i == 4 {
+			assert.Equal(t, "double_$histogram", meterData.GetHistogram().GetName())
+			assert.Equal(t, 3, len(meterData.GetHistogram().GetValues()))
+			assert.Equal(t, int64(1), meterData.GetHistogram().GetValues()[0].Count)
+			assert.Equal(t, true, meterData.GetHistogram().GetValues()[0].IsNegativeInfinity)
+			assert.Equal(t, int64(2), meterData.GetHistogram().GetValues()[1].Count)
+			assert.Equal(t, false, meterData.GetHistogram().GetValues()[1].IsNegativeInfinity)
+			assert.Equal(t, float64(1), meterData.GetHistogram().GetValues()[1].GetBucket())
+			assert.Equal(t, int64(2), meterData.GetHistogram().GetValues()[2].Count)
+			assert.Equal(t, false, meterData.GetHistogram().GetValues()[2].IsNegativeInfinity)
+			assert.Equal(t, float64(2), meterData.GetHistogram().GetValues()[2].GetBucket())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+			assert.Equal(t, "innerValueH", searchMetricTag("innerLabelH", meterData))
+
+		} else if i == 5 {
+			assert.Equal(t, "double_$histogram_sum", meterData.GetSingleValue().GetName())
+			assert.Equal(t, 10.1, meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+			assert.Equal(t, "innerValueH", searchMetricTag("innerLabelH", meterData))
+		} else if i == 6 {
+			assert.Equal(t, "double_$histogram_count", meterData.GetSingleValue().GetName())
+			assert.Equal(t, float64(5), meterData.GetSingleValue().GetValue())
+			assert.Equal(t, int64(100), meterData.GetTimestamp())
+			assert.Equal(t, "innerValueH", searchMetricTag("innerLabelH", meterData))
 		}
 	}
 }

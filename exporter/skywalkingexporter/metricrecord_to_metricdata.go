@@ -40,7 +40,7 @@ func resourceToMetricLabels(resource pdata.Resource) []*metricpb.Label {
 	return labels
 }
 
-func numberMetricsToLogs(name string, data pdata.NumberDataPointSlice, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
+func numberMetricsToData(name string, data pdata.NumberDataPointSlice, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
 	metrics = make([]*metricpb.MeterData, 0)
 	for i := 0; i < data.Len(); i++ {
 		dataPoint := data.At(i)
@@ -72,7 +72,7 @@ func numberMetricsToLogs(name string, data pdata.NumberDataPointSlice, defaultLa
 	return metrics
 }
 
-func doubleHistogramMetricsToLogs(name string, data pdata.HistogramDataPointSlice, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
+func doubleHistogramMetricsToData(name string, data pdata.HistogramDataPointSlice, defaultLabels []*metricpb.Label) (metrics []*metricpb.MeterData) {
 	metrics = make([]*metricpb.MeterData, 0)
 	for i := 0; i < data.Len(); i++ {
 		dataPoint := data.At(i)
@@ -89,26 +89,30 @@ func doubleHistogramMetricsToLogs(name string, data pdata.HistogramDataPointSlic
 
 		meterData := &metricpb.MeterData{}
 		hg := &metricpb.MeterData_Histogram{Histogram: &metricpb.MeterHistogram{}}
+		hg.Histogram.Labels = labels
 		hg.Histogram.Name = name
 		bounds := dataPoint.ExplicitBounds()
 		bucketCount := len(dataPoint.BucketCounts())
 
-		hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: 0, Count: int64(dataPoint.BucketCounts()[i]), IsNegativeInfinity: true})
+		if bucketCount > 0 {
+			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Count: int64(dataPoint.BucketCounts()[0]), IsNegativeInfinity: true})
+		}
 		for i := 1; i < bucketCount && i-1 < len(bounds); i++ {
 			hg.Histogram.Values = append(hg.Histogram.Values, &metricpb.MeterBucketValue{Bucket: bounds[i-1], Count: int64(dataPoint.BucketCounts()[i])})
 		}
 
 		meterData.Metric = hg
 		meterData.Service = defaultServiceName
+		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		metrics = append(metrics, meterData)
 
 		meterDataSum := &metricpb.MeterData{}
 		svs := &metricpb.MeterData_SingleValue{SingleValue: &metricpb.MeterSingleValue{}}
 		svs.SingleValue.Labels = labels
-		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		svs.SingleValue.Name = name + "_sum"
 		svs.SingleValue.Value = dataPoint.Sum()
 		meterDataSum.Metric = svs
+		meterDataSum.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		metrics = append(metrics, meterDataSum)
 
 		meterDataCount := &metricpb.MeterData{}
@@ -128,11 +132,11 @@ func metricDataToLogServiceData(md pdata.Metric, defaultLabels []*metricpb.Label
 	case pdata.MetricDataTypeNone:
 		break
 	case pdata.MetricDataTypeGauge:
-		return numberMetricsToLogs(md.Name(), md.Gauge().DataPoints(), defaultLabels)
+		return numberMetricsToData(md.Name(), md.Gauge().DataPoints(), defaultLabels)
 	case pdata.MetricDataTypeSum:
-		return numberMetricsToLogs(md.Name(), md.Sum().DataPoints(), defaultLabels)
+		return numberMetricsToData(md.Name(), md.Sum().DataPoints(), defaultLabels)
 	case pdata.MetricDataTypeHistogram:
-		return doubleHistogramMetricsToLogs(md.Name(), md.Histogram().DataPoints(), defaultLabels)
+		return doubleHistogramMetricsToData(md.Name(), md.Histogram().DataPoints(), defaultLabels)
 	case pdata.MetricDataTypeSummary:
 		//todo not support yet
 		return nil
