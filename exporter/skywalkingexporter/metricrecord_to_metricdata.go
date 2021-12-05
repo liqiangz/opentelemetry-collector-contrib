@@ -19,12 +19,9 @@ import (
 	metricpb "skywalking.apache.org/repo/goapi/collect/language/agent/v3"
 )
 
-func min(l, r int) int {
-	if l < r {
-		return l
-	}
-	return r
-}
+const (
+	defaultServiceInstance = "otel-collector-instance"
+)
 
 func resourceToMetricLabels(resource pdata.Resource) []*metricpb.Label {
 	labels := make([]*metricpb.Label, 0)
@@ -67,6 +64,7 @@ func numberMetricsToData(name string, data pdata.NumberDataPointSlice, defaultLa
 		}
 		meterData.Metric = sv
 		meterData.Service = defaultServiceName
+		meterData.ServiceInstance = defaultServiceInstance
 		metrics = append(metrics, meterData)
 	}
 	return metrics
@@ -103,6 +101,7 @@ func doubleHistogramMetricsToData(name string, data pdata.HistogramDataPointSlic
 
 		meterData.Metric = hg
 		meterData.Service = defaultServiceName
+		meterData.ServiceInstance = defaultServiceInstance
 		meterData.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
 		metrics = append(metrics, meterData)
 
@@ -113,6 +112,8 @@ func doubleHistogramMetricsToData(name string, data pdata.HistogramDataPointSlic
 		svs.SingleValue.Value = dataPoint.Sum()
 		meterDataSum.Metric = svs
 		meterDataSum.Timestamp = dataPoint.Timestamp().AsTime().UnixMilli()
+		meterDataSum.Service = defaultServiceName
+		meterDataSum.ServiceInstance = defaultServiceInstance
 		metrics = append(metrics, meterDataSum)
 
 		meterDataCount := &metricpb.MeterData{}
@@ -122,6 +123,8 @@ func doubleHistogramMetricsToData(name string, data pdata.HistogramDataPointSlic
 		svc.SingleValue.Name = name + "_count"
 		svc.SingleValue.Value = float64(dataPoint.Count())
 		meterDataCount.Metric = svc
+		meterDataCount.Service = defaultServiceName
+		meterDataCount.ServiceInstance = defaultServiceInstance
 		metrics = append(metrics, meterDataCount)
 	}
 	return metrics
