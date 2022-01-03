@@ -2,6 +2,149 @@
 
 ## Unreleased
 
+## 💡 Enhancements 💡
+
+- `prometheusremotewriteexporter`: Handling Staleness flag from OTLP (#6679)
+- `mysqlreceiver`: Add Integration test (#6916)
+- `datadogexporter`: Add compatibility with ECS Fargate semantic conventions (#6670)
+- `k8s_observer`: discover k8s.node endpoints (#6820)
+- `redisreceiver`: Add missing description fields to keyspace metrics (#6940)
+- `kafkaexporter`: Allow controlling Kafka acknowledgment behaviour  (#6301)
+
+## 🛑 Breaking changes 🛑
+
+- `memcachedreceiver`: Update metric names (#6594)
+- `memcachedreceiver`: Fix some metric units and value types (#6895)
+- `sapm` receiver: Use Jaeger status values instead of OpenCensus (#6682)
+- `jaeger` receiver/exporter: Parse/set Jaeger status with OTel spec values (#6682)
+
+## 🚀 New components 🚀
+
+- `ecs_task_observer`: Discover running containers in AWS ECS tasks (#6894)
+
+## 🧰 Bug fixes 🧰
+
+- `ecstaskobserver`: Fix "Incorrect conversion between integer types" security issue (#6939)
+- Fix typo in "direction" metrics attribute description (#6949)
+
+## 💡 Enhancements 💡
+
+- `lokiexporter`: add complete log record to body (#6619)
+
+- `spanmetricproccessor`: use an LRU cache for the cached Dimensions key-value pairs (#2179)
+
+- `skywalkingexporter`: add skywalking metrics exporter (#6528)
+
+## v0.41.0
+
+## 🛑 Breaking changes 🛑
+
+- None
+
+## 🚀 New components 🚀
+
+- `asapauthextension` (#6627)
+- `mongodbatlasreceiver` (#6367)
+
+## 🧰 Bug fixes 🧰
+
+- `filestorageextension`: fix panic when configured directory cannot be accessed (#6103)
+- `hostmetricsreceiver`: fix set of attributes for system.cpu.time metric (#6422)
+- `k8sobserver`: only record pod endpoints for running pods (#5878)
+- `mongodbatlasreceiver`: fix attributes fields in metadata.yaml (#6440)
+- `prometheusexecreceiver`: command line processing on Windows (#6145)
+- `spanmetricsprocessor`: fix exemplars support (#6140)
+-  Remap arm64 to aarch64 on rpm/deb packages (#6635)
+
+## 💡 Enhancements 💡
+
+- `datadogexporter`: do not use attribute localhost-like hostnames (#6477)
+- `datadogexporter`: retry per network call (#6412)
+- `datadogexporter`: take hostname into account for cache (#6223)
+- `exporter/lokiexporter`: adding a feature for loki exporter to encode JSON for log entry (#5846)
+- `googlecloudspannerreceiver`: added fallback to ADC for database connections. (#6629)
+- `googlecloudspannerreceiver`: added parsing only distinct items for sample lock request label. (#6514)
+- `googlecloudspannerreceiver`: added request tag label to metadata config for top query stats. (#6475)
+- `googlecloudspannerreceiver`: added sample lock requests label to the top lock stats metrics. (#6466)
+- `googlecloudspannerreceiver`: added transaction tag label to metadata config for top transaction stats. (#6433)
+- `groupbyattrsprocessor`: added support for metrics signal (#6248)
+- `hostmetricsreceiver`: ensure SchemaURL is set (#6482)
+- `kubeletstatsreceiver`: add support for read-only kubelet endpoint (#6488)
+- `mysqlreceiver`: enable native authentication (#6628)
+- `mysqlreceiver`: remove requirement for password on MySQL (#6479)
+- `receiver/prometheusreceiver`: do not add host.name to metrics from localhost/unspecified targets (#6476)
+- `spanmetricsprocessor`: add setStatus operation (#5886)
+- `splunkhecexporter`: remove duplication of host.name attribute (#6527)
+- `tanzuobservabilityexporter`: add consumer for sum metrics. (#6385)
+- Update log-collection library to v0.23.0 (#6593)
+
+## v0.40.0
+
+## 🛑 Breaking changes 🛑
+
+- `tencentcloudlogserviceexporter`: change `Endpoint` to `Region` to simplify configuration (#6135)
+
+## 🚀 New components 🚀
+
+- Add `memcached` receiver (#5839)
+
+## 🧰 Bug fixes 🧰
+
+- Fix token passthrough for HEC (#5435)
+- `datadogexporter`: Fix missing resource attributes default mapping when resource_attributes_as_tags: false (#6359)
+- `tanzuobservabilityexporter`: Log and report missing metric values. (#5835)
+- `mongodbatlasreceiver`: Fix metrics metadata (#6395)
+
+## 💡 Enhancements 💡
+
+- `awsprometheusremotewrite` exporter: Improve error message when failing to sign request
+- `mongodbatlas`: add metrics (#5921)
+- `healthcheckextension`: Add path option (#6111)
+- Set unprivileged user to container image (#6380)
+- `k8sclusterreceiver`: Add allocatable type of metrics (#6113)
+- `observiqexporter`: Allow Dialer timeout to be configured (#5906)
+- `routingprocessor`: remove broken debug log fields (#6373)
+- `prometheusremotewriteexporter`: Add exemplars support (#5578) 
+
+## v0.39.0
+
+## 🛑 Breaking changes 🛑
+
+- `httpdreceiver` renamed to `apachereceiver` to match industry standards (#6207)
+- `tencentcloudlogserviceexporter` change `Endpoint` to `Region` to simplify configuration (#6135)
+
+## 🚀 New components 🚀
+
+- Add `postgresqlreceiver` config and factory (#6153)
+- Add TencentCloud LogService exporter `tencentcloudlogserviceexporter` (#5722)
+- Restore `jaegerthrifthttpexporter` (#5666)
+- Add `skywalkingexporter` (#5690, #6114)
+
+## 🧰 Bug fixes 🧰
+
+- `datadogexporter`: Improve cumulative metrics reset detection using `StartTimestamp` (#6120)
+- `mysqlreceiver`: Address issues in shutdown function (#6239)
+- `tailsamplingprocessor`: End go routines during shutdown (#5693)
+- `googlecloudexporter`: Update google cloud exporter to correctly close the metric exporter (#5990)
+- `statsdreceiver`: Fix the summary point calculation (#6155)
+- `datadogexporter` Correct default value for `send_count_sum_metrics` (#6130)
+
+## 💡 Enhancements 💡
+
+- `datadogexporter`: Increase default timeout to 15 seconds (#6131)
+- `googlecloudspannerreceiver`: Added metrics cardinality handling for Google Cloud Spanner receiver (#5981, #6148, #6229)
+- `mysqlreceiver`: Mysql add support for different protocols (#6138)
+- `bearertokenauthextension`: Added support of Bearer Auth for HTTP Exporters (#5962)
+- `awsxrayexporter`: Fallback to rpc.method for segment operation when aws.operation missing (#6231)
+- `healthcheckextension`: Add new health check feature for collector pipeline (#5643)
+- `datadogexporter`: Always add current hostname (#5967)
+- `k8sattributesprocessor`: Add code to fetch all annotations and labels by specifying key regex (#5780)
+- `datadogexporter`: Do not rely on collector to resolve envvar when possible to resolve them (#6122)
+- `datadogexporter`: Add container tags to attributes package (#6086)
+- `datadogexporter`: Preserve original TraceID (#6158)
+- `prometheusreceiver`: Enhance prometheus receiver logger to determine errors, test real e2e usage (#5870)
+- `awsxrayexporter`: Added support for AWS AppRunner origin (#6141)
+
 ## v0.38.0
 
 ## 🛑 Breaking changes 🛑
