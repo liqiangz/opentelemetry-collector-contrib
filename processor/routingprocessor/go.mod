@@ -11,7 +11,7 @@ require (
 	google.golang.org/grpc v1.41.0
 )
 
-require go.uber.org/multierr v1.7.0
+require go.uber.org/multierr v1.8.0
 
 require (
 	cloud.google.com/go v0.93.3 // indirect
