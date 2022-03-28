@@ -10,7 +10,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	go.opencensus.io v0.23.0
 	go.opentelemetry.io/collector/model v0.38.1-0.20211102161805-d3e1f126eea2
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.28.0
 )
 
 require (
