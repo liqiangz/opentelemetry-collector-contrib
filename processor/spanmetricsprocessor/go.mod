@@ -6,7 +6,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter v0.38.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.38.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver v0.38.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.2
 	go.opentelemetry.io/collector v0.38.1-0.20211102161805-d3e1f126eea2
 	go.opentelemetry.io/collector/model v0.38.1-0.20211102161805-d3e1f126eea2
 	go.uber.org/zap v1.19.1
@@ -69,7 +69,7 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter => ../../exporter/jaegerexporter
