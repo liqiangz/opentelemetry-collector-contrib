@@ -39,7 +39,7 @@ require (
 
 require (
 	github.com/frankban/quicktest v1.10.2 // indirect
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.28.1
 )
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal => ../../internal/coreinternal
