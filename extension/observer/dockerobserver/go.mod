@@ -8,14 +8,15 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer v0.38.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/common v0.38.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/docker v0.38.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	go.opentelemetry.io/collector v0.38.1-0.20211102161805-d3e1f126eea2
-	go.uber.org/zap v1.19.1
+	go.uber.org/zap v1.24.0
 
 )
 
 require (
 	github.com/Microsoft/go-winio v0.4.17 // indirect
+	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -50,7 +51,7 @@ require (
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer => ../
