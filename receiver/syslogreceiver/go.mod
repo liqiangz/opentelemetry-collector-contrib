@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/stanza v0.38.0
 	github.com/open-telemetry/opentelemetry-log-collection v0.22.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.2
 	go.opentelemetry.io/collector v0.38.1-0.20211102161805-d3e1f126eea2
 	go.opentelemetry.io/collector/model v0.38.1-0.20211102161805-d3e1f126eea2
 	gopkg.in/yaml.v2 v2.4.0
@@ -39,7 +39,7 @@ require (
 	golang.org/x/sys v0.0.0-20210816074244-15123e1e1f71 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gonum.org/v1/gonum v0.9.3 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/stanza => ../../internal/stanza
